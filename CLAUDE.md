@@ -34,3 +34,4 @@ This is a Next.js 16 application using the App Router with React 19. The project
 - Global styles in `app/globals.css` with Tailwind v4 syntax
 - Theme colors defined as CSS custom properties in `:root` and `.dark`
 - Uses oklch color space for design tokens
+- Do not use `[var(--variable-name)]` in className's, for example use `text-(--primary-blue)` instead of `text-[var(--primary-blue)]`

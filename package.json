@@ -18,9 +18,11 @@
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.45.0",
     "lucide-react": "^0.556.0",
+    "mapbox-gl": "^3.17.0",
     "next": "16.0.8",
     "react": "19.2.1",
     "react-dom": "19.2.1",
+    "react-map-gl": "^8.1.0",
     "tailwind-merge": "^3.4.0"
   },
   "devDependencies": {

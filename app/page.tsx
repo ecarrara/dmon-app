@@ -48,15 +48,14 @@ export default async function Home() {
 
   return (
     <DashboardShell>
-      <Header userName={firstName} userImage={user.image} role="Pro Driver" />
-      <SystemStatusCard
-        status="ready"
-        gpsStatus="Strong"
-        cameraStatus="Ready"
-        location="Current Location"
+      <Header
+        userName={firstName}
+        userImage={user.image}
+        role="Newbie Driver"
       />
+      <SystemStatusCard status="ready" cameraStatus="Ready" />
       <StartTrackingButton />
-      <StatsGrid score={92} hours={1} minutes={45} events={0} />
+      <StatsGrid score={92} hours={1} minutes={45} events={2} />
       <RecentTrips trips={demoTrips} />
       <BottomNav activeTab="home" />
     </DashboardShell>
