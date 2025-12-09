@@ -1,4 +1,9 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Driver Monitoring
+
+This is an online mobile app for driver monitoring. The user can track
+themselves (video + GPS location), and the app periodically sends video clips
+and tracking data for processing, generating a detailed report using computer
+vision algorithms.
 
 ## Getting Started
 

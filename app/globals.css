@@ -120,3 +120,21 @@
         @apply bg-background text-foreground;
     }
 }
+
+/* Dashboard custom colors */
+:root {
+    --background-dark: #101622;
+    --surface-dark: #1c1f27;
+    --surface-highlight: #282e39;
+    --primary-blue: #135bec;
+}
+
+/* Shimmer animation for Start Tracking button */
+@keyframes shimmer {
+    0% {
+        transform: translateX(-100%) skewX(-12deg);
+    }
+    100% {
+        transform: translateX(100%) skewX(-12deg);
+    }
+}
