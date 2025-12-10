@@ -11,6 +11,7 @@ import { useGPSTracking } from "@/hooks/use-gps-tracking";
 import { useCamera } from "@/hooks/use-camera";
 import { useVideoRecorder } from "@/hooks/use-video-recorder";
 import { useTrip } from "@/hooks/use-trip";
+import { useRoboflowStream } from "@/hooks/use-roboflow-stream";
 import { calculateTripStats } from "@/lib/trip-stats";
 
 // Calculate distance between two coordinates in meters using Haversine formula
@@ -54,19 +55,29 @@ export function TrackingView() {
     stopTracking,
   } = useGPSTracking();
 
-  const {
-    stream,
-    isActive: isCameraActive,
-    error: cameraError,
-    videoRef,
-    startCamera,
-    stopCamera,
-  } = useCamera();
+  const { stream, error: cameraError, startCamera, stopCamera } = useCamera();
 
   const { startRecording, stopRecording, isRecording } = useVideoRecorder();
 
   const { tripId, createTrip, endTrip, sendLocationBatch, uploadVideoClip } =
     useTrip();
+
+  const {
+    status: aiStatus,
+    connect: connectToRoboflow,
+    disconnect: disconnectFromRoboflow,
+    remoteStream,
+  } = useRoboflowStream({
+    onData: (data) => {
+      console.log("AI predictions received", data);
+    },
+    onStatusChange: (status) => {
+      console.warn("AI connection status:", status);
+    },
+    onError: (error) => {
+      console.error("AI connection error:", error);
+    },
+  });
 
   // Create trip and start tracking on mount
   useEffect(() => {
@@ -84,13 +95,14 @@ export function TrackingView() {
       stopTracking();
       stopCamera();
       stopRecording();
+      disconnectFromRoboflow();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Start video recording when camera stream is ready
   useEffect(() => {
-    if (stream && tripId && !isRecording) {
+    if (remoteStream && tripId && !isRecording) {
       videoChunkStartTime.current = Date.now();
 
       const handleVideoChunk = (blob: Blob) => {
@@ -104,9 +116,16 @@ export function TrackingView() {
         videoChunkStartTime.current = endTime;
       };
 
-      startRecording(stream, handleVideoChunk);
+      startRecording(remoteStream, handleVideoChunk);
     }
-  }, [stream, tripId, isRecording, startRecording, uploadVideoClip]);
+  }, [remoteStream, tripId, isRecording, startRecording, uploadVideoClip]);
+
+  // Connect to Roboflow AI inference when camera stream is ready
+  useEffect(() => {
+    if (stream && tripId && aiStatus === "disconnected") {
+      connectToRoboflow(stream);
+    }
+  }, [stream, tripId, aiStatus, connectToRoboflow]);
 
   // Send location batches every 10 seconds
   useEffect(() => {
@@ -190,6 +209,7 @@ export function TrackingView() {
     stopTracking();
     stopCamera();
     stopRecording();
+    disconnectFromRoboflow();
 
     // Calculate trip statistics
     const stats = calculateTripStats(positionHistory);
@@ -226,9 +246,11 @@ export function TrackingView() {
         positionHistory={positionHistory}
         speed={speedKmh}
         address={address}
-        cameraVideoRef={videoRef}
-        isCameraActive={isCameraActive}
-        cameraError={cameraError}
+        cameraStream={remoteStream}
+        isCameraActive={aiStatus === "connected"}
+        cameraError={
+          aiStatus === "error" ? "AI connection failed" : cameraError
+        }
       />
       <EndTripButton onClick={handleEndTrip} />
     </TrackingShell>

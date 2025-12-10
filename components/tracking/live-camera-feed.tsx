@@ -1,19 +1,28 @@
 "use client";
 
-import { RefObject } from "react";
+import { useRef, useEffect } from "react";
 import { Camera, VideoOff } from "lucide-react";
 
 interface LiveCameraFeedProps {
-  videoRef: RefObject<HTMLVideoElement | null>;
+  stream: MediaStream | null;
   isActive: boolean;
   error?: string | null;
 }
 
 export function LiveCameraFeed({
-  videoRef,
+  stream,
   isActive,
   error,
 }: LiveCameraFeedProps) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Attach stream to video element when it changes
+  useEffect(() => {
+    if (videoRef.current && stream) {
+      videoRef.current.srcObject = stream;
+    }
+  }, [stream]);
+
   return (
     <div className="group/pip relative aspect-3/4 w-32 cursor-pointer overflow-hidden rounded-xl border-2 border-white/10 bg-black shadow-2xl transition-transform active:scale-95">
       {error ? (

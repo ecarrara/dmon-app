@@ -17,7 +17,7 @@ interface TrackingMapProps {
   positionHistory: GPSPosition[];
   speed: number; // km/h
   address: string;
-  cameraVideoRef: React.RefObject<HTMLVideoElement | null>;
+  cameraStream: MediaStream | null;
   isCameraActive: boolean;
   cameraError?: string | null;
 }
@@ -41,7 +41,7 @@ export function TrackingMap({
   positionHistory,
   speed,
   address,
-  cameraVideoRef,
+  cameraStream,
   isCameraActive,
   cameraError,
 }: TrackingMapProps) {
@@ -140,12 +140,12 @@ export function TrackingMap({
           {/* Left side - Speed and AI status */}
           <div className="flex flex-col gap-3 pt-2">
             <SpeedIndicator speed={speed} />
-            <AIStatusBadge isActive={true} />
+            <AIStatusBadge isActive={isCameraActive} />
           </div>
 
           {/* Right side - Camera feed */}
           <LiveCameraFeed
-            videoRef={cameraVideoRef}
+            stream={cameraStream}
             isActive={isCameraActive}
             error={cameraError}
           />
