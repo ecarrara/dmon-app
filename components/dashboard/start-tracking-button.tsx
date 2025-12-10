@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { PlayCircle } from "lucide-react";
 
 interface StartTrackingButtonProps {
@@ -7,10 +8,17 @@ interface StartTrackingButtonProps {
 }
 
 export function StartTrackingButton({ onClick }: StartTrackingButtonProps) {
+  const router = useRouter();
+
+  const handleClick = () => {
+    onClick?.();
+    router.push("/tracking");
+  };
+
   return (
     <div className="px-4 py-6">
       <button
-        onClick={onClick}
+        onClick={handleClick}
         className="group relative w-full overflow-hidden rounded-xl bg-(--primary-blue) text-white shadow-[0_0_20px_rgba(19,91,236,0.3)] transition-all duration-300 hover:shadow-[0_0_30px_rgba(19,91,236,0.5)]"
       >
         {/* Gradient background */}

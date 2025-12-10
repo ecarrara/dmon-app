@@ -1,6 +1,6 @@
 "use client";
 
-import { Video, Satellite, Camera, Loader2 } from "lucide-react";
+import { Satellite, Camera, Loader2 } from "lucide-react";
 import Map, { Marker } from "react-map-gl/mapbox";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { StatusBadge } from "./status-badge";
