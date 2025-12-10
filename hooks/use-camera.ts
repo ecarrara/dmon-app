@@ -31,8 +31,9 @@ export function useCamera() {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: "user", // Front camera for driver-facing view
-          width: { ideal: 320 },
-          height: { ideal: 240 },
+          width: { ideal: 620 },
+          height: { ideal: 480 },
+          frameRate: { ideal: 30 },
         },
         audio: false,
       });
