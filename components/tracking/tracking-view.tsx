@@ -3,12 +3,22 @@
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 
+import { TrackingShell } from "./tracking-shell";
+import { TrackingHeader } from "./tracking-header";
+import { TrackingMap } from "./tracking-map";
+import { EndTripButton } from "./end-trip-button";
+import { useGPSTracking } from "@/hooks/use-gps-tracking";
+import { useCamera } from "@/hooks/use-camera";
+import { useVideoRecorder } from "@/hooks/use-video-recorder";
+import { useTrip } from "@/hooks/use-trip";
+import { calculateTripStats } from "@/lib/trip-stats";
+
 // Calculate distance between two coordinates in meters using Haversine formula
 function getDistanceInMeters(
   lat1: number,
   lon1: number,
   lat2: number,
-  lon2: number
+  lon2: number,
 ): number {
   const R = 6371000; // Earth's radius in meters
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
@@ -23,19 +33,18 @@ function getDistanceInMeters(
   return R * c;
 }
 
-import { TrackingShell } from "./tracking-shell";
-import { TrackingHeader } from "./tracking-header";
-import { TrackingMap } from "./tracking-map";
-import { EndTripButton } from "./end-trip-button";
-import { useGPSTracking } from "@/hooks/use-gps-tracking";
-import { useCamera } from "@/hooks/use-camera";
-
-const MIN_DISTANCE_FOR_GEOCODE = 50; // meters
+const MIN_DISTANCE_FOR_GEOCODE = 10; // meters
+const LOCATION_BATCH_INTERVAL = 10000; // 10 seconds
 
 export function TrackingView() {
   const router = useRouter();
   const [address, setAddress] = useState("Locating...");
-  const lastGeocodedPosition = useRef<{ latitude: number; longitude: number } | null>(null);
+  const lastGeocodedPosition = useRef<{
+    latitude: number;
+    longitude: number;
+  } | null>(null);
+  const lastSentLocationIndex = useRef(0);
+  const videoChunkStartTime = useRef<number>(Date.now());
 
   const {
     currentPosition,
@@ -46,6 +55,7 @@ export function TrackingView() {
   } = useGPSTracking();
 
   const {
+    stream,
     isActive: isCameraActive,
     error: cameraError,
     videoRef,
@@ -53,17 +63,77 @@ export function TrackingView() {
     stopCamera,
   } = useCamera();
 
-  // Start tracking and camera on mount
+  const { startRecording, stopRecording, isRecording } = useVideoRecorder();
+
+  const { tripId, createTrip, endTrip, sendLocationBatch, uploadVideoClip } =
+    useTrip();
+
+  // Create trip and start tracking on mount
   useEffect(() => {
-    startTracking();
-    startCamera();
+    const initializeTrip = async () => {
+      const id = await createTrip();
+      if (id) {
+        startTracking();
+        startCamera();
+      }
+    };
+
+    initializeTrip();
 
     return () => {
       stopTracking();
       stopCamera();
+      stopRecording();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Start video recording when camera stream is ready
+  useEffect(() => {
+    if (stream && tripId && !isRecording) {
+      videoChunkStartTime.current = Date.now();
+
+      const handleVideoChunk = (blob: Blob) => {
+        const endTime = Date.now();
+        const startTime = videoChunkStartTime.current;
+
+        console.log(`Uploading video chunk: ${startTime} - ${endTime}`);
+        uploadVideoClip(tripId, blob, startTime, endTime);
+
+        // Update start time for next chunk
+        videoChunkStartTime.current = endTime;
+      };
+
+      startRecording(stream, handleVideoChunk);
+    }
+  }, [stream, tripId, isRecording, startRecording, uploadVideoClip]);
+
+  // Send location batches every 10 seconds
+  useEffect(() => {
+    if (!tripId || !isTracking) return;
+
+    const interval = setInterval(() => {
+      const newLocations = positionHistory.slice(lastSentLocationIndex.current);
+
+      if (newLocations.length > 0) {
+        const locationData = newLocations.map((pos) => ({
+          latitude: pos.latitude,
+          longitude: pos.longitude,
+          speed: pos.speed,
+          altitude: pos.altitude,
+          accuracy: pos.accuracy,
+          heading: pos.heading,
+          capturedAt: pos.timestamp,
+        }));
+
+        sendLocationBatch(tripId, locationData);
+        lastSentLocationIndex.current = positionHistory.length;
+        console.log(`Sent ${locationData.length} location points`);
+      }
+    }, LOCATION_BATCH_INTERVAL);
+
+    return () => clearInterval(interval);
+  }, [tripId, isTracking, positionHistory, sendLocationBatch]);
 
   // Reverse geocode to get address (only if moved more than 10 meters)
   useEffect(() => {
@@ -76,7 +146,7 @@ export function TrackingView() {
         lastPos.latitude,
         lastPos.longitude,
         currentPosition.latitude,
-        currentPosition.longitude
+        currentPosition.longitude,
       );
       if (distance < MIN_DISTANCE_FOR_GEOCODE) {
         return; // Skip geocoding if moved less than 10 meters
@@ -110,9 +180,41 @@ export function TrackingView() {
     ? Math.round(currentPosition.speed * 3.6)
     : 0;
 
-  const handleEndTrip = () => {
+  const handleEndTrip = async () => {
+    if (!tripId) {
+      router.push("/");
+      return;
+    }
+
+    // Stop tracking and recording
     stopTracking();
     stopCamera();
+    stopRecording();
+
+    // Calculate trip statistics
+    const stats = calculateTripStats(positionHistory);
+
+    // Send remaining location batch
+    const remainingLocations = positionHistory.slice(
+      lastSentLocationIndex.current,
+    );
+    if (remainingLocations.length > 0) {
+      const locationData = remainingLocations.map((pos) => ({
+        latitude: pos.latitude,
+        longitude: pos.longitude,
+        speed: pos.speed,
+        altitude: pos.altitude,
+        accuracy: pos.accuracy,
+        heading: pos.heading,
+        capturedAt: pos.timestamp,
+      }));
+      await sendLocationBatch(tripId, locationData);
+    }
+
+    // End trip with statistics
+    await endTrip(tripId, stats);
+
+    // Navigate to home
     router.push("/");
   };
 

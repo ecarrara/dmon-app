@@ -6,6 +6,9 @@ export interface GPSPosition {
   latitude: number;
   longitude: number;
   speed: number | null; // m/s from Geolocation API
+  altitude: number | null; // meters
+  accuracy: number | null; // meters
+  heading: number | null; // degrees
   timestamp: number;
 }
 
@@ -20,6 +23,9 @@ const DEFAULT_POSITION: GPSPosition = {
   latitude: 37.7749,
   longitude: -122.4194,
   speed: null,
+  altitude: null,
+  accuracy: null,
+  heading: null,
   timestamp: Date.now(),
 };
 
@@ -52,6 +58,9 @@ export function useGPSTracking() {
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
           speed: position.coords.speed,
+          altitude: position.coords.altitude,
+          accuracy: position.coords.accuracy,
+          heading: position.coords.heading,
           timestamp: position.timestamp,
         };
 
