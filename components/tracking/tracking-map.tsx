@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useCallback, useMemo } from "react";
+import { useRef, useCallback, useMemo, useState, useEffect } from "react";
 import Map, { Marker, Source, Layer, MapRef } from "react-map-gl/mapbox";
 import type { LayerProps } from "react-map-gl/mapbox";
 import "mapbox-gl/dist/mapbox-gl.css";
@@ -46,9 +46,24 @@ export function TrackingMap({
   cameraError,
 }: TrackingMapProps) {
   const mapRef = useRef<MapRef>(null);
+  const [userHasInteracted, setUserHasInteracted] = useState(false);
 
   const latitude = currentPosition?.latitude ?? 37.7749;
   const longitude = currentPosition?.longitude ?? -122.4194;
+
+  // Auto-center map when position changes (if user hasn't interacted)
+  useEffect(() => {
+    if (currentPosition && !userHasInteracted) {
+      mapRef.current?.flyTo({
+        center: [currentPosition.longitude, currentPosition.latitude],
+        duration: 500,
+      });
+    }
+  }, [currentPosition, userHasInteracted]);
+
+  const handleMapInteraction = useCallback(() => {
+    setUserHasInteracted(true);
+  }, []);
 
   // Convert position history to GeoJSON line
   const routeGeoJson = useMemo(() => {
@@ -76,6 +91,7 @@ export function TrackingMap({
   }, []);
 
   const handleRecenter = useCallback(() => {
+    setUserHasInteracted(false);
     if (currentPosition) {
       mapRef.current?.flyTo({
         center: [currentPosition.longitude, currentPosition.latitude],
@@ -99,6 +115,8 @@ export function TrackingMap({
         style={{ width: "100%", height: "100%" }}
         mapStyle="mapbox://styles/mapbox/dark-v11"
         attributionControl={false}
+        onDragStart={handleMapInteraction}
+        onZoomStart={handleMapInteraction}
       >
         {/* Route line */}
         {routeGeoJson && (
