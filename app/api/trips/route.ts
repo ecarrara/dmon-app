@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
 }
 
 // GET /api/trips - List user's trips
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const session = await auth.api.getSession({
       headers: await headers(),
@@ -50,12 +50,22 @@ export async function GET() {
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    
+    const limitStr = request.nextUrl.searchParams.get("limit") || "10"
+    const limit = parseInt(limitStr);
+    if (isNaN(limit)) {
+      return NextResponse.json(
+        { error: "limit must be a valid number" },
+        { status: 400 },
+      );
+    }
 
     const trips = await db
       .select()
       .from(trip)
       .where(eq(trip.userId, session.user.id))
-      .orderBy(desc(trip.startedAt));
+      .orderBy(desc(trip.startedAt))
+      .limit(limit);
 
     return NextResponse.json({ trips });
   } catch (error) {
