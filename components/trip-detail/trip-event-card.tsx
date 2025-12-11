@@ -110,21 +110,6 @@ export function TripEventCard({ event, tripStartedAt }: TripEventCardProps) {
     return `00:${secs.toString().padStart(2, "0")}`;
   };
 
-  // Get status message for non-processed videos
-  const getVideoStatusMessage = () => {
-    if (!event.videoClip) return "No video available";
-    switch (event.videoClip.status) {
-      case "processing":
-        return "Video processing...";
-      case "failed":
-        return "Video unavailable";
-      default:
-        return null;
-    }
-  };
-
-  const statusMessage = getVideoStatusMessage();
-
   const playVideo = useCallback(async () => {
     setIsVideoModalOpen(true);
     videoRef.current!.currentTime = Math.max(event.offset - 5, 0);
@@ -168,13 +153,9 @@ export function TripEventCard({ event, tripStartedAt }: TripEventCardProps) {
 
           {/* Play button or status message */}
           <div className="absolute inset-0 flex items-center justify-center">
-            {hasVideo ? (
+            {hasVideo && (
               <div className="bg-(--primary-blue)/90 text-white rounded-full p-3 backdrop-blur-sm shadow-lg transform group-hover:scale-110 transition-transform duration-200">
                 <Play className="h-8 w-8 fill-white" />
-              </div>
-            ) : (
-              <div className="bg-black/80 text-white text-sm px-4 py-2 rounded-lg backdrop-blur-sm">
-                {statusMessage}
               </div>
             )}
           </div>
