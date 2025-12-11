@@ -177,19 +177,19 @@ export function TripDetailView({ tripId }: TripDetailViewProps) {
       {/* Detected Events List */}
       <TripEventsList events={events} tripStartedAt={trip.startedAt} />
 
+      {/* Route Visualization */}
+      <TripRouteMap
+        locations={locations}
+        events={events}
+        tripStartedAt={trip.startedAt}
+      />
+
       {/* Speed Over Time Chart */}
       <TripSpeedChart
         locations={locations}
         events={events}
         tripStartedAt={trip.startedAt}
         tripDuration={tripDuration}
-      />
-
-      {/* Route Visualization */}
-      <TripRouteMap
-        locations={locations}
-        events={events}
-        tripStartedAt={trip.startedAt}
       />
     </div>
   );
