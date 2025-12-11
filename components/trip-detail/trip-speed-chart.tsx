@@ -124,7 +124,7 @@ export function TripSpeedChart({
             {[0, 30, 60, 90, 120].map((value, index) => {
               const y = height - (value / maxSpeedKmh) * height;
               return (
-                <g key={value}>
+                <g key={index}>
                   <text
                     className="text-xs fill-current"
                     fill="rgb(100, 116, 139)"
@@ -187,8 +187,8 @@ export function TripSpeedChart({
 
         {/* X-axis time labels */}
         <div className="absolute -bottom-5 left-0 right-0 flex justify-between text-xs text-muted-foreground px-1">
-          {timeLabels.map((time) => (
-            <span key={time.label}>{time.label}</span>
+          {timeLabels.map((time, index) => (
+            <span key={index}>{time.label}</span>
           ))}
         </div>
       </div>
