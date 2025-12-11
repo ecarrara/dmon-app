@@ -10,6 +10,38 @@ import { TripSpeedChart } from "./trip-speed-chart";
 import { TripRouteMap } from "./trip-route-map";
 import { Trip, TripLocation, TripScore, TripEvent } from "@/types/trip";
 
+/**
+ * Get rating and message based on score
+ */
+function getScoreRating(score: number): { rating: string; message: string } {
+  if (score >= 90) {
+    return {
+      rating: "Excellent Driving",
+      message: "Top 10% of drivers today. Keep it up!",
+    };
+  } else if (score >= 80) {
+    return {
+      rating: "Good Driving",
+      message: "You're doing great! A few areas to improve.",
+    };
+  } else if (score >= 70) {
+    return {
+      rating: "Average Driving",
+      message: "Room for improvement. Stay focused.",
+    };
+  } else if (score >= 60) {
+    return {
+      rating: "Below Average",
+      message: "Multiple safety concerns detected.",
+    };
+  } else {
+    return {
+      rating: "Poor Driving",
+      message: "Serious safety issues. Please drive carefully.",
+    };
+  }
+}
+
 interface TripDetailViewProps {
   tripId: string;
 }
@@ -70,12 +102,18 @@ export function TripDetailView({ tripId }: TripDetailViewProps) {
     fetchTripData();
   }, [tripId]);
 
-  // TODO: Replace mock score with actual score calculation
-  const score: TripScore = {
-    score: 84,
-    rating: "Excellent Driving",
-    message: "Top 10% of drivers today. Keep it up!",
-  };
+  // Calculate score from trip data
+  const score: TripScore =
+    trip?.score != null
+      ? {
+          score: trip.score,
+          ...getScoreRating(trip.score),
+        }
+      : {
+          score: 0,
+          rating: "Not Scored",
+          message: "Trip score will be calculated when completed.",
+        };
 
   // Show loading state
   if (loading || !trip) {

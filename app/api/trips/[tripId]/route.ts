@@ -3,7 +3,8 @@ import { headers } from "next/headers";
 import { eq, and } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { trip } from "@/lib/db/schema";
+import { trip, tripEvent } from "@/lib/db/schema";
+import { calculateTripScore } from "@/lib/scoring";
 
 interface RouteParams {
   params: Promise<{ tripId: string }>;
@@ -80,6 +81,36 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     }
     if (body.averageSpeed !== undefined) {
       updateData.averageSpeed = body.averageSpeed;
+    }
+
+    // Calculate score when trip is completed
+    if (body.status === "completed" && body.endedAt) {
+      const tripDuration = body.endedAt - existingTrip.startedAt;
+
+      // Fetch all events for this trip
+      const events = await db
+        .select()
+        .from(tripEvent)
+        .where(eq(tripEvent.tripId, tripId));
+
+      // Calculate score
+      const tripScore = calculateTripScore(
+        events.map((e) => ({
+          id: e.id,
+          tripId: e.tripId,
+          eventType: e.eventType,
+          offset: e.offset,
+          timestamp: existingTrip.startedAt + e.offset * 1000,
+          imageUrl: e.imageUrl,
+          confidence: e.confidence,
+          metadata: e.metadata,
+          createdAt: e.createdAt,
+          videoClip: null,
+        })),
+        tripDuration,
+      );
+
+      updateData.score = tripScore.score;
     }
 
     await db.update(trip).set(updateData).where(eq(trip.id, tripId));

@@ -78,6 +78,7 @@ export const trip = sqliteTable(
       .default("active"),
     totalDistance: real("total_distance"), // meters
     averageSpeed: real("average_speed"), // m/s
+    score: integer("score"), // 0-100, calculated when trip is completed
     createdAt: integer("created_at").notNull(),
     updatedAt: integer("updated_at").notNull(),
   },

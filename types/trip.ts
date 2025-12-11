@@ -10,6 +10,7 @@ export type Trip = {
   status: TripStatus;
   totalDistance: number | null; // meters
   averageSpeed: number | null; // m/s
+  score: number | null; // 0-100, calculated when trip is completed
   createdAt: number;
   updatedAt: number;
 };
