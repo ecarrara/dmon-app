@@ -6,7 +6,7 @@ interface DashboardShellProps {
 
 export function DashboardShell({ children }: DashboardShellProps) {
   return (
-    <div className="flex h-screen w-full flex-col overflow-hidden bg-(--background-dark) text-white">
+    <div className="flex w-full flex-col overflow-hidden bg-(--background-dark) text-white">
       {children}
     </div>
   );
