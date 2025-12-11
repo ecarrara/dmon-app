@@ -7,9 +7,9 @@ interface UseVideoRecorderReturn {
   recordingDuration: number;
   startRecording: (
     stream: MediaStream,
-    onChunkReady: (blob: Blob) => void
+    onChunkReady: (blob: Blob) => void | Promise<void>
   ) => void;
-  stopRecording: () => void;
+  stopRecording: () => Promise<void>;
 }
 
 export function useVideoRecorder(): UseVideoRecorderReturn {
@@ -17,12 +17,14 @@ export function useVideoRecorder(): UseVideoRecorderReturn {
   const [recordingDuration, setRecordingDuration] = useState(0);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const chunkCallbackRef = useRef<((blob: Blob) => void) | null>(null);
+  const chunkCallbackRef = useRef<((blob: Blob) => void | Promise<void>) | null>(null);
   const startTimeRef = useRef<number>(0);
   const durationIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const pendingChunkUploadRef = useRef<Promise<void> | null>(null);
+  const stopPromiseResolveRef = useRef<(() => void) | null>(null);
 
   const startRecording = useCallback(
-    (stream: MediaStream, onChunkReady: (blob: Blob) => void) => {
+    (stream: MediaStream, onChunkReady: (blob: Blob) => void | Promise<void>) => {
       if (!MediaRecorder.isTypeSupported("video/webm")) {
         console.error("video/webm is not supported");
         return;
@@ -44,9 +46,12 @@ export function useVideoRecorder(): UseVideoRecorderReturn {
               `Video chunk ready: ${event.data.size} bytes (${startTimeRef.current} - ${endTime})`
             );
 
-            // Call the callback with the blob
+            // Call the callback with the blob and track the promise if async
             if (chunkCallbackRef.current) {
-              chunkCallbackRef.current(event.data);
+              const result = chunkCallbackRef.current(event.data);
+              if (result instanceof Promise) {
+                pendingChunkUploadRef.current = result;
+              }
             }
 
             // Update start time for next chunk
@@ -59,12 +64,32 @@ export function useVideoRecorder(): UseVideoRecorderReturn {
           setIsRecording(false);
         };
 
-        mediaRecorder.onstop = () => {
+        mediaRecorder.onstop = async () => {
           setIsRecording(false);
           setRecordingDuration(0);
           if (durationIntervalRef.current) {
             clearInterval(durationIntervalRef.current);
             durationIntervalRef.current = null;
+          }
+
+          // Wait for any pending chunk upload to complete
+          if (pendingChunkUploadRef.current) {
+            try {
+              await pendingChunkUploadRef.current;
+            } catch (error) {
+              console.error("Error waiting for final chunk upload:", error);
+            }
+            pendingChunkUploadRef.current = null;
+          }
+
+          // Clean up refs now that we're done
+          mediaRecorderRef.current = null;
+          chunkCallbackRef.current = null;
+
+          // Resolve the stop promise if waiting
+          if (stopPromiseResolveRef.current) {
+            stopPromiseResolveRef.current();
+            stopPromiseResolveRef.current = null;
           }
         };
 
@@ -88,19 +113,24 @@ export function useVideoRecorder(): UseVideoRecorderReturn {
     []
   );
 
-  const stopRecording = useCallback(() => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      mediaRecorderRef.current = null;
-      chunkCallbackRef.current = null;
+  const stopRecording = useCallback((): Promise<void> => {
+    return new Promise((resolve) => {
+      if (mediaRecorderRef.current && isRecording) {
+        // Store the resolve function to be called when onstop completes
+        stopPromiseResolveRef.current = resolve;
 
-      if (durationIntervalRef.current) {
-        clearInterval(durationIntervalRef.current);
-        durationIntervalRef.current = null;
+        // Call stop - this will trigger ondataavailable (with final chunk) then onstop
+        mediaRecorderRef.current.stop();
+
+        // Don't null out chunkCallbackRef yet! The final ondataavailable event
+        // needs it to upload the last chunk. It will be cleared in onstop.
+
+        console.log("Video recording stopped");
+      } else {
+        // Not recording, resolve immediately
+        resolve();
       }
-
-      console.log("Video recording stopped");
-    }
+    });
   }, [isRecording]);
 
   // Cleanup on unmount

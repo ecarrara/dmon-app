@@ -59,7 +59,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           startTime: body.startTime,
           endTime: body.endTime,
           duration: body.duration || Math.floor((body.endTime - body.startTime) / 1000),
-          status: "uploading" as const,
+          status: "processed" as const,
           createdAt: now,
         };
 
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           {
             id: clipId,
             presignedUrl,
-            status: "uploading",
+            status: "processed",
           },
           { status: 201 }
         );
@@ -108,7 +108,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         duration: Math.floor((endTime - startTime) / 1000),
         fileUrl,
         fileSize: buffer.length,
-        status: "processing" as const,
+        status: "processed" as const,
         createdAt: now,
       };
 
@@ -118,7 +118,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         {
           id: clipId,
           fileUrl,
-          status: "processing",
+          status: "processed",
         },
         { status: 201 }
       );

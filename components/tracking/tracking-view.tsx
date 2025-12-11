@@ -53,6 +53,7 @@ const DETECTION_MESSAGES: Record<string, string> = {
 export function TrackingView() {
   const router = useRouter();
   const [address, setAddress] = useState("Locating...");
+  const [isEndingTrip, setIsEndingTrip] = useState(false);
   const lastGeocodedPosition = useRef<{
     latitude: number;
     longitude: number;
@@ -128,15 +129,17 @@ export function TrackingView() {
     if (remoteStream && tripId && !isRecording) {
       videoChunkStartTime.current = Date.now();
 
-      const handleVideoChunk = (blob: Blob) => {
+      const handleVideoChunk = (blob: Blob): Promise<void> => {
         const endTime = Date.now();
         const startTime = videoChunkStartTime.current;
 
         console.log(`Uploading video chunk: ${startTime} - ${endTime}`);
-        uploadVideoClip(tripId, blob, startTime, endTime);
 
         // Update start time for next chunk
         videoChunkStartTime.current = endTime;
+
+        // Return the upload promise so it can be tracked
+        return uploadVideoClip(tripId, blob, startTime, endTime);
       };
 
       startRecording(remoteStream, handleVideoChunk);
@@ -232,11 +235,15 @@ export function TrackingView() {
       return;
     }
 
-    // Stop tracking and recording
+    setIsEndingTrip(true);
+
+    // Stop tracking, camera, and AI connection
     stopTracking();
     stopCamera();
-    stopRecording();
     disconnectFromRoboflow();
+
+    // Stop recording and wait for final chunk to upload
+    await stopRecording();
 
     // Calculate trip statistics
     const stats = calculateTripStats(positionHistory);
@@ -262,7 +269,7 @@ export function TrackingView() {
     await endTrip(tripId, stats);
 
     // Navigate to trip detail page
-    router.push(`/trips/${tripId}`);
+    router.replace(`/trips/${tripId}`);
   };
 
   return (
@@ -279,7 +286,7 @@ export function TrackingView() {
           aiStatus === "error" ? "AI connection failed" : cameraError
         }
       />
-      <EndTripButton onClick={handleEndTrip} />
+      <EndTripButton onClick={handleEndTrip} loading={isEndingTrip} />
     </TrackingShell>
   );
 }
