@@ -40,14 +40,14 @@ const LOCATION_BATCH_INTERVAL = 10000; // 10 seconds
 
 const DETECTION_MESSAGES: Record<string, string> = {
   "Drowsy eye": "You look drowsy. Consider taking a break soon.",
-  "Eyeclosed": "Your eyes are closed. Stay alert!",
+  Eyeclosed: "Your eyes are closed. Stay alert!",
   "Open-Mouth": "Yawning detected. Time for a rest stop?",
-  "Yawn": "Yawning detected. Time for a rest stop?",
-  "yawn": "Yawning detected. Time for a rest stop?",
-  "asleep": "Wake up! Pull over safely immediately.",
-  "close": "Your eyes are closing. Stay focused on the road.",
-  "closed": "Your eyes are closed. Stay alert!",
-  "phone": "Phone detected. Keep your hands on the wheel.",
+  Yawn: "Yawning detected. Time for a rest stop?",
+  yawn: "Yawning detected. Time for a rest stop?",
+  asleep: "Wake up! Pull over safely immediately.",
+  close: "Your eyes are closing. Stay focused on the road.",
+  closed: "Your eyes are closed. Stay alert!",
+  phone: "Phone detected. Keep your hands on the wheel.",
 };
 
 export function TrackingView() {
@@ -103,7 +103,7 @@ export function TrackingView() {
   });
 
   // Create trip and start tracking on mount
-  useEffect(() => {    
+  useEffect(() => {
     const initializeTrip = async () => {
       const id = await createTrip();
       if (id) {
@@ -146,7 +146,11 @@ export function TrackingView() {
   // Connect to Roboflow AI inference when camera stream is ready
   useEffect(() => {
     if (stream && tripId && aiStatus === "disconnected") {
-      connectToRoboflow(stream);
+      connectToRoboflow(stream, {
+        workflowsParameters: {
+          trip_id: tripId,
+        },
+      });
     }
   }, [stream, tripId, aiStatus, connectToRoboflow]);
 

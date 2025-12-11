@@ -128,3 +128,23 @@ export const tripVideoClip = sqliteTable(
   },
   (table) => [index("tripVideoClip_tripId_idx").on(table.tripId)],
 );
+
+export const tripEvent = sqliteTable(
+  "trip_event",
+  {
+    id: text("id").primaryKey(),
+    tripId: text("trip_id")
+      .notNull()
+      .references(() => trip.id, { onDelete: "cascade" }),
+    eventType: text("event_type").notNull(), // e.g., "Drowsy eye", "Yawn", "phone"
+    offset: real("offset").notNull(), // seconds since trip start
+    imageUrl: text("image_url"), // S3 URL to the detection image
+    confidence: real("confidence"), // detection confidence score (0-1)
+    metadata: text("metadata"), // JSON string for additional data
+    createdAt: integer("created_at").notNull(), // Unix timestamp in ms
+  },
+  (table) => [
+    index("tripEvent_tripId_idx").on(table.tripId),
+    index("tripEvent_tripId_offset_idx").on(table.tripId, table.offset),
+  ],
+);

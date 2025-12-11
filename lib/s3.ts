@@ -65,3 +65,33 @@ export async function getPresignedUploadUrl(
 export function getClipUrl(tripId: string, clipId: string): string {
   return `https://${BUCKET_NAME}.${S3_REGION}.${S3_DOMAIN}/clips/${tripId}/${clipId}.webm`;
 }
+
+/**
+ * Upload an event image to S3
+ */
+export async function uploadEventImage(
+  tripId: string,
+  eventId: string,
+  file: Buffer,
+  contentType: string = "image/jpeg",
+): Promise<string> {
+  const key = `events/${tripId}/${eventId}.jpg`;
+
+  await s3Client.send(
+    new PutObjectCommand({
+      Bucket: BUCKET_NAME,
+      Key: key,
+      Body: file,
+      ContentType: contentType,
+    }),
+  );
+
+  return `https://${BUCKET_NAME}.${S3_REGION}.${S3_DOMAIN}/${key}`;
+}
+
+/**
+ * Get the S3 URL for an event image
+ */
+export function getEventImageUrl(tripId: string, eventId: string): string {
+  return `https://${BUCKET_NAME}.${S3_REGION}.${S3_DOMAIN}/events/${tripId}/${eventId}.jpg`;
+}
