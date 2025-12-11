@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 import { TrackingShell } from "./tracking-shell";
 import { TrackingHeader } from "./tracking-header";
@@ -37,6 +38,18 @@ function getDistanceInMeters(
 const MIN_DISTANCE_FOR_GEOCODE = 10; // meters
 const LOCATION_BATCH_INTERVAL = 10000; // 10 seconds
 
+const DETECTION_MESSAGES: Record<string, string> = {
+  "Drowsy eye": "You look drowsy. Consider taking a break soon.",
+  "Eyeclosed": "Your eyes are closed. Stay alert!",
+  "Open-Mouth": "Yawning detected. Time for a rest stop?",
+  "Yawn": "Yawning detected. Time for a rest stop?",
+  "yawn": "Yawning detected. Time for a rest stop?",
+  "asleep": "Wake up! Pull over safely immediately.",
+  "close": "Your eyes are closing. Stay focused on the road.",
+  "closed": "Your eyes are closed. Stay alert!",
+  "phone": "Phone detected. Keep your hands on the wheel.",
+};
+
 export function TrackingView() {
   const router = useRouter();
   const [address, setAddress] = useState("Locating...");
@@ -46,6 +59,7 @@ export function TrackingView() {
   } | null>(null);
   const lastSentLocationIndex = useRef(0);
   const videoChunkStartTime = useRef<number>(Date.now());
+  const lastPredictionClass = useRef<string | null>(null);
 
   const {
     currentPosition,
@@ -68,8 +82,17 @@ export function TrackingView() {
     disconnect: disconnectFromRoboflow,
     remoteStream,
   } = useRoboflowStream({
-    onData: (data) => {
-      console.log("AI predictions received", data);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    onData: (data: any) => {
+      for (const pred of data.serialized_output_data?.predictions.predictions) {
+        if (pred.class !== lastPredictionClass.current) {
+          lastPredictionClass.current = pred.class;
+          const message = DETECTION_MESSAGES[pred.class];
+          if (message) {
+            toast.warning(message);
+          }
+        }
+      }
     },
     onStatusChange: (status) => {
       console.warn("AI connection status:", status);
@@ -80,7 +103,7 @@ export function TrackingView() {
   });
 
   // Create trip and start tracking on mount
-  useEffect(() => {
+  useEffect(() => {    
     const initializeTrip = async () => {
       const id = await createTrip();
       if (id) {
@@ -246,7 +269,7 @@ export function TrackingView() {
         positionHistory={positionHistory}
         speed={speedKmh}
         address={address}
-        cameraStream={remoteStream}
+        cameraStream={remoteStream ?? stream}
         isCameraActive={aiStatus === "connected"}
         cameraError={
           aiStatus === "error" ? "AI connection failed" : cameraError
