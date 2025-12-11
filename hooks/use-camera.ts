@@ -33,7 +33,7 @@ export function useCamera() {
           facingMode: "user", // Front camera for driver-facing view
           width: { ideal: 620 },
           height: { ideal: 480 },
-          frameRate: { ideal: 30 },
+          frameRate: { ideal: 15 },
         },
         audio: false,
       });

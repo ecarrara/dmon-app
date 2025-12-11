@@ -261,8 +261,8 @@ export function TrackingView() {
     // End trip with statistics
     await endTrip(tripId, stats);
 
-    // Navigate to home
-    router.push("/");
+    // Navigate to trip detail page
+    router.push(`/trips/${tripId}`);
   };
 
   return (
