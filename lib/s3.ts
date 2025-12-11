@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 const S3_DOMAIN = process.env.S3_DOMAIN || "your-objectstorage.com";
@@ -94,4 +94,41 @@ export async function uploadEventImage(
  */
 export function getEventImageUrl(tripId: string, eventId: string): string {
   return `https://${BUCKET_NAME}.${S3_REGION}.${S3_DOMAIN}/events/${tripId}/${eventId}.jpg`;
+}
+
+/**
+ * Generate a presigned URL for downloading from S3
+ */
+export async function getPresignedDownloadUrl(
+  key: string,
+  expiresIn: number = 7200, // 2 hours
+): Promise<string> {
+  const command = new GetObjectCommand({
+    Bucket: BUCKET_NAME,
+    Key: key,
+  });
+
+  return getSignedUrl(s3Client, command, { expiresIn });
+}
+
+/**
+ * Get a presigned download URL for a video clip
+ */
+export async function getPresignedClipUrl(
+  tripId: string,
+  clipId: string,
+): Promise<string> {
+  const key = `clips/${tripId}/${clipId}.webm`;
+  return getPresignedDownloadUrl(key);
+}
+
+/**
+ * Get a presigned download URL for an event image
+ */
+export async function getPresignedEventImageUrl(
+  tripId: string,
+  eventId: string,
+): Promise<string> {
+  const key = `events/${tripId}/${eventId}.jpg`;
+  return getPresignedDownloadUrl(key);
 }

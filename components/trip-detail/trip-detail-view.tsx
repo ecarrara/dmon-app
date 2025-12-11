@@ -1,3 +1,6 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import { TripHeader } from "./trip-header";
 import { TripScoreCard } from "./trip-score-card";
 import { TripStatsCards } from "./trip-stats-cards";
@@ -5,14 +8,17 @@ import { TripEventsList } from "./trip-events-list";
 import { TripEventsSummary } from "./trip-events-summary";
 import { TripSpeedChart } from "./trip-speed-chart";
 import { TripRouteMap } from "./trip-route-map";
-import { TripWithDetails, TripScore } from "@/types/trip";
+import { TripWithDetails, TripScore, TripEvent } from "@/types/trip";
 
 interface TripDetailViewProps {
   tripId: string;
 }
 
-// Mock data generator
-function getMockTripData(tripId: string): {
+// Mock data generator (without events - those come from API)
+function getMockTripData(
+  tripId: string,
+  events: TripEvent[],
+): {
   trip: TripWithDetails;
   score: TripScore;
 } {
@@ -31,47 +37,7 @@ function getMockTripData(tripId: string): {
       averageSpeed: 18.05, // m/s (~65 km/h)
       createdAt: startedAt,
       updatedAt: endedAt,
-      events: [
-        {
-          id: "event-1",
-          tripId,
-          eventType: "Distracted Driving",
-          offset: 900, // 15 minutes into trip
-          imageUrl:
-            "https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=800&h=450&fit=crop",
-          confidence: 0.98,
-          metadata: JSON.stringify({
-            description: "Eyes off road for >3s.",
-          }),
-          createdAt: startedAt + 900000,
-        },
-        {
-          id: "event-2",
-          tripId,
-          eventType: "speed",
-          offset: 1200, // 20 minutes
-          imageUrl:
-            "https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?w=800&h=450&fit=crop",
-          confidence: 0.98,
-          metadata: JSON.stringify({
-            description: "Eyes off road for >3s.",
-          }),
-          createdAt: startedAt + 1200000,
-        },
-        {
-          id: "event-3",
-          tripId,
-          eventType: "Drowsy eye",
-          offset: 2100, // 35 minutes
-          imageUrl:
-            "https://images.unsplash.com/photo-1551410224-699683e15636?w=800&h=450&fit=crop",
-          confidence: 0.82,
-          metadata: JSON.stringify({
-            description: "Eye closure detected.",
-          }),
-          createdAt: startedAt + 2100000,
-        },
-      ],
+      events, // Use real events from API
       locations: generateMockLocations(startedAt, duration),
     },
     score: {
@@ -125,8 +91,38 @@ function generateMockLocations(startedAt: number, duration: number) {
 }
 
 export function TripDetailView({ tripId }: TripDetailViewProps) {
-  // TODO: Replace with actual database query
-  const { trip, score } = getMockTripData(tripId);
+  const [events, setEvents] = useState<TripEvent[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch events from API
+  useEffect(() => {
+    async function fetchEvents() {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const response = await fetch(`/api/trips/${tripId}/events`);
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch events: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        setEvents(data.events || []);
+      } catch (err) {
+        console.error("Error fetching events:", err);
+        setError(err instanceof Error ? err.message : "Failed to load events");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchEvents();
+  }, [tripId]);
+
+  // TODO: Replace mock trip data with actual database query
+  const { trip, score } = getMockTripData(tripId, events);
 
   // Format trip date
   const tripDate = new Date(trip.startedAt).toLocaleDateString("en-US", {
@@ -143,6 +139,29 @@ export function TripDetailView({ tripId }: TripDetailViewProps) {
 
   // Calculate trip duration
   const tripDuration = trip.endedAt! - trip.startedAt;
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-(--background-dark) text-white">
+        <div className="text-center">
+          <div className="mb-4 text-xl">Loading trip details...</div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-(--background-dark) text-white">
+        <div className="text-center">
+          <div className="mb-4 text-xl text-red-500">Error loading events</div>
+          <div className="text-sm text-gray-400">{error}</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex w-full flex-col overflow-hidden bg-(--background-dark) text-white">
@@ -178,7 +197,6 @@ export function TripDetailView({ tripId }: TripDetailViewProps) {
         locations={trip.locations}
         events={trip.events}
         tripStartedAt={trip.startedAt}
-        startLocation="5th Avenue, NYC"
       />
     </div>
   );
