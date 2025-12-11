@@ -1,14 +1,52 @@
 import { cn } from "@/lib/utils";
 import { Clock, ChevronRight } from "lucide-react";
+import Link from "next/link";
+import type { Trip } from "@/types/trip";
 
 type ScoreGrade = "A" | "B" | "C" | "D" | "F";
 
 interface TripItemProps {
-  name: string;
-  time: string;
-  distance: string;
-  score: number;
+  trip: Trip;
   className?: string;
+}
+
+function formatTripName(timestamp: number): string {
+  const date = new Date(timestamp);
+  const hour = date.getHours();
+
+  if (hour >= 5 && hour < 12) {
+    return "Morning Trip";
+  } else if (hour >= 12 && hour < 17) {
+    return "Afternoon Trip";
+  } else if (hour >= 17 && hour < 21) {
+    return "Evening Trip";
+  } else {
+    return "Night Trip";
+  }
+}
+
+function formatRelativeTime(timestamp: number): string {
+  const now = Date.now();
+  const diff = now - timestamp;
+  const minutes = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
+  const days = Math.floor(diff / 86400000);
+
+  if (minutes < 60) {
+    return `${minutes}m ago`;
+  } else if (hours < 24) {
+    return `${hours}h ago`;
+  } else if (days === 1) {
+    return "Yesterday";
+  } else {
+    return `${days} days ago`;
+  }
+}
+
+function formatDistance(meters: number | null | undefined): string {
+  if (!meters) return "0.0 mi";
+  const miles = meters / 1609.34;
+  return `${miles.toFixed(1)} mi`;
 }
 
 function getGrade(score: number): ScoreGrade {
@@ -55,18 +93,14 @@ const gradeColors: Record<
   },
 };
 
-export function TripItem({
-  name,
-  time,
-  distance,
-  score,
-  className,
-}: TripItemProps) {
+export function TripItem({ trip, className }: TripItemProps) {
+  const score = trip.score ?? 0;
   const grade = getGrade(score);
   const colors = gradeColors[grade];
 
   return (
-    <div
+    <Link
+      href={`/trips/${trip.id}`}
       className={cn(
         "group flex cursor-pointer items-center justify-between rounded-xl border border-white/5 bg-(--surface-dark) p-4 transition-colors hover:bg-(--surface-highlight)",
         className,
@@ -85,14 +119,16 @@ export function TripItem({
           <span className="text-lg font-bold">{grade}</span>
         </div>
         <div className="flex flex-col gap-0.5">
-          <p className="text-base font-bold text-white">{name}</p>
+          <p className="text-base font-bold text-white">
+            {formatTripName(trip.startedAt)}
+          </p>
           <div className="flex items-center gap-2 text-xs text-slate-400">
             <span className="flex items-center gap-1">
               <Clock className="size-3.5" />
-              {time}
+              {formatRelativeTime(trip.startedAt)}
             </span>
             <span className="size-1 rounded-full bg-slate-600" />
-            <span>{distance}</span>
+            <span>{formatDistance(trip.totalDistance)}</span>
           </div>
         </div>
       </div>
@@ -103,6 +139,6 @@ export function TripItem({
         </div>
         <ChevronRight className="size-5 text-slate-600" />
       </div>
-    </div>
+    </Link>
   );
 }
