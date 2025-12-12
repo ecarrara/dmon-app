@@ -135,6 +135,8 @@ The `docker-compose.yml` includes:
 
 ## 🏗 Architecture
 
+![Driver Monitoring Architecture](./dmon-architecture.png)
+
 ### High-Level Flow
 
 ```
