@@ -68,7 +68,8 @@ S3_ACCESS_KEY_ID=your-access-key-id S3_SECRET_ACCESS_KEY=your-secret-access-key
 # Roboflow (Required for AI processing)
 ROBOFLOW_API_KEY=your-roboflow-api-key
 ROBOFLOW_WORKSPACE_NAME=your-workspace-name
-ROBOFLOW_WORKFLOW_ID=your-workflow-id ```
+ROBOFLOW_WORKFLOW_ID=your-workflow-id
+```
 
 > **Tip**: Generate a secure `BETTER_AUTH_SECRET` using: `openssl rand -base64
   32`
@@ -78,11 +79,15 @@ ROBOFLOW_WORKFLOW_ID=your-workflow-id ```
 The application uses SQLite with Drizzle ORM. Migrations run automatically on
 first start, or you can run them manually:
 
-```bash bun run drizzle-kit migrate ```
+```bash
+bun run drizzle-kit migrate
+```
 
 ### 5. Start Development Server
 
-```bash bun dev ```
+```bash
+bun dev
+```
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
@@ -111,7 +116,8 @@ bun run drizzle-kit generate
 bun run drizzle-kit migrate
 
 # Open Drizzle Studio (database GUI)
-bun run drizzle-kit studio ```
+bun run drizzle-kit studio
+```
 
 ## 🐳 Deployment
 
