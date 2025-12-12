@@ -5,6 +5,47 @@ GPS location data, and AI-powered computer vision to analyze and improve driver
 behavior. Built for mobile-first experiences with comprehensive trip analytics
 and safety scoring.
 
+## 🏗 Architecture
+
+![Driver Monitoring Architecture](./dmon-architecture.png)
+
+### High-Level Flow
+
+```
+Mobile Client
+    ↓
+    ├─→ [Next.js API Routes]
+    │       ├─→ Better Auth (session management)
+    │       ├─→ Drizzle ORM → SQLite (trip data, events)
+    │       └─→ AWS S3 SDK → Object Storage (video clips, images)
+    │
+    ├─→ [WebRTC Stream]
+    │       └─→ Roboflow Inference (real-time AI detection)
+    │
+    └─→ [Roboflow Webhook]
+            └─→ POST /api/webhook/roboflow
+                    └─→ Store detection events
+```
+
+### Key Workflows
+
+1. **Trip Recording**:
+   - User starts trip → Create trip record
+   - GPS updates sent to `/api/trips/[tripId]/locations`
+   - Video recorded in chunks → Uploaded to S3 via `/api/trips/[tripId]/clips`
+   - Video sent to Roboflow for analysis via WebRTC
+
+2. **AI Detection**:
+   - Roboflow analyzes video stream in real-time
+   - Detections sent to webhook → Stored as trip events
+   - Events include image snapshot, offset, and classification
+
+3. **Trip Analysis**:
+   - User ends trip → Calculate score based on events
+   - Display route map with event markers
+   - Show speed chart and statistics
+
+
 ## ✨ Features
 
 - **Real-time Tracking**: Simultaneous video and GPS location monitoring during
@@ -132,46 +173,6 @@ The `docker-compose.yml` includes:
 - Volume mount for SQLite persistence
 - Health checks
 - Auto-restart policy
-
-## 🏗 Architecture
-
-![Driver Monitoring Architecture](./dmon-architecture.png)
-
-### High-Level Flow
-
-```
-Mobile Client
-    ↓
-    ├─→ [Next.js API Routes]
-    │       ├─→ Better Auth (session management)
-    │       ├─→ Drizzle ORM → SQLite (trip data, events)
-    │       └─→ AWS S3 SDK → Object Storage (video clips, images)
-    │
-    ├─→ [WebRTC Stream]
-    │       └─→ Roboflow Inference (real-time AI detection)
-    │
-    └─→ [Roboflow Webhook]
-            └─→ POST /api/webhook/roboflow
-                    └─→ Store detection events
-```
-
-### Key Workflows
-
-1. **Trip Recording**:
-   - User starts trip → Create trip record
-   - GPS updates sent to `/api/trips/[tripId]/locations`
-   - Video recorded in chunks → Uploaded to S3 via `/api/trips/[tripId]/clips`
-   - Video sent to Roboflow for analysis via WebRTC
-
-2. **AI Detection**:
-   - Roboflow analyzes video stream in real-time
-   - Detections sent to webhook → Stored as trip events
-   - Events include image snapshot, offset, and classification
-
-3. **Trip Analysis**:
-   - User ends trip → Calculate score based on events
-   - Display route map with event markers
-   - Show speed chart and statistics
 
 ## 🤝 Contributing
 
