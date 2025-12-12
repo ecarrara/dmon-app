@@ -22,8 +22,8 @@ interface InitWebRTCRequestBody {
 
 interface TurnConfig {
   urls: string;
-  username: string;
-  credential: string;
+  username?: string;
+  credential?: string;
 }
 
 /**
@@ -31,18 +31,20 @@ interface TurnConfig {
  * TURN servers help establish WebRTC connections through NAT/firewalls
  */
 async function fetchTurnConfig(apiKey: string): Promise<TurnConfig> {
+  const fallbackConfig = { urls: "stun:stun.l.google.com:19302" };
+
   try {
     const response = await fetch(
       `https://api.roboflow.com/webrtc_turn_config?api_key=${apiKey}`,
     );
     if (!response.ok) {
       console.warn("Failed to fetch TURN config:", response.status);
-      return null;
+      return fallbackConfig;
     }
     return await response.json();
   } catch (error) {
     console.warn("Error fetching TURN config:", error);
-    return null;
+    return fallbackConfig;
   }
 }
 
